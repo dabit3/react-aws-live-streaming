@@ -1,0 +1,24 @@
+{
+    "shared": {
+        "bucket": "amplify-my-streaming-app-dev-152441-deployment",
+        "resourceName": "mylivestream"
+    },
+    "advanced": {
+        "gopSize": "1",
+        "gopPerSegment": "2",
+        "segsPerPlist": "3",
+        "advancedChoice": false
+    },
+    "mediaLive": {
+        "securityGroup": "0.0.0.0/0",
+        "ingestType": "RTMP_PUSH",
+        "encodingProfile": "FULL",
+        "autoStart": "YES"
+    },
+    "mediaStorage": {
+        "storageType": "mStore"
+    },
+    "cloudFront": {
+        "enableDistribution": "NO"
+    }
+}

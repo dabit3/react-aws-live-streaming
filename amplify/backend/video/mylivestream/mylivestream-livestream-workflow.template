@@ -1,0 +1,473 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+
+  "Description": "mylivestream",
+
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": { "default": "Provision: Source Files Configuration" },
+          "Parameters": [
+            "pS3",
+            "pSourceFolder",
+            "pPackageName"
+          ]
+        },
+        {
+          "Label": { "default": "Shared Settings: Encoding and Packaging Configuration" },
+          "Parameters": [
+            "pGopSizeInSec",
+            "pGopPerSegment",
+            "pSegmentPerPlaylist"
+          ]
+        },
+        {
+          "Label": { "default": "MediaLive: Channel Configuration" },
+          "Parameters": [
+            "pInputSecurityGroup",
+            "pIngestType",
+            "pEncodingProfile",
+            "pGopSizeInSec",
+            "pGopPerSegment",
+            "pStartChannel",
+            "pMp4URL"
+          ]
+        },
+        {
+          "Label": { "default": "MediaPackage: Channel Configuration" },
+          "Parameters": [
+            "pEndpoints",
+            "pStartOverWindow"
+          ]
+        },
+        {
+          "Label": { "default": "MediaStore: Container Configuration" },
+          "Parameters": [
+            "pEnableMediaStore"
+          ]
+        },
+        {
+          "Label": { "default": "CloudFront: Distribution Configuration" },
+          "Parameters": [
+            "pEnableDistribution",
+            "pPriceClass",
+            "pS3CF",
+            "pS3PrefixCF"
+          ]
+        }
+      ],
+      "ParameterLabels": {
+        "env":{
+          "default": "Env variable for Amplify"
+        },
+        "pProjectName": {
+          "default": "Your project name"
+        },
+        "pS3": {
+          "default": "S3 Bucket Name"
+        },
+
+        "pSourceFolder": {
+          "default": "Source Folder"
+        },
+
+        "pPackageName": {
+          "default": "Lambda Package Name"
+        },
+
+        "pGopSizeInSec": {
+          "default": "GOP Size"
+        },
+
+        "pGopPerSegment": {
+          "default": "GOP(s) Per Segment"
+        },
+
+        "pSegmentPerPlaylist": {
+          "default": "Segment(s) Per Playlist"
+        },
+
+        "pInputSecurityGroup": {
+          "default": "Input Security Group"
+        },
+
+        "pIngestType": {
+          "default": "Ingest Type"
+        },
+        
+        "pMp4URL": {
+          "default": "URL to MP4 File"
+        },
+
+        "pEncodingProfile": {
+          "default": "Encoding Profile"
+        },
+
+        "pStartChannel": {
+          "default": "Auto-start"
+        },
+
+        "pEndpoints": {
+          "default": "Packaging Type(s)"
+        },
+
+        "pStartOverWindow": {
+          "default": "Content Window (in seconds)"
+        },
+
+        "pEnableMediaStore": {
+          "default": "Enable MediaStore?"
+        },
+
+        "pEnableDistribution": {
+          "default": "Create distribution?"
+        },
+
+        "pPriceClass": {
+          "default": "Price Class"
+        },
+
+        "pS3CF": {
+          "default": "S3 Bucket for logs"
+        },
+
+        "pS3PrefixCF": {
+          "default": "S3 Prefix (Folder) for logs"
+        }
+      }
+    }
+  },
+  
+  "Resources": {
+  
+    "rML": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Sub": "https://s3.amazonaws.com/${pS3}/${pSourceFolder}/medialive.template"
+        },
+        "Parameters": {
+          "pS3": {
+            "Ref": "pS3"
+          },
+
+          "pSourceFolder": {
+            "Ref": "pSourceFolder"
+          },
+
+          "pPackageName": {
+            "Ref": "pPackageName"
+          },
+
+          "pProvisionLambdaHandler": "orchestration.MediaLiveChannel",
+
+          "pChannelId": {
+            "Fn::If": [
+              "HasEnvironmentParameter",
+              {
+                "Fn::Join": [
+                  "-",
+                  [
+                    {
+                      "Ref": "pProjectName"
+                    },
+                    {
+                      "Ref": "env"
+                    }
+                  ]
+                ]
+              },
+              {
+                "Ref": "pProjectName"
+              }
+            ]
+          },
+
+          "pInputSecurityGroup": {
+            "Fn::Join": [ ",", { "Ref": "pInputSecurityGroup" } ]
+          },
+
+          "pIngestType": {
+            "Ref": "pIngestType"
+          },
+
+          "pMp4URL": {
+            "Ref": "pMp4URL"
+          },
+
+          "pEncodingProfile": {
+            "Ref": "pEncodingProfile"
+          },
+
+          "pGopSizeInSec": {
+            "Ref": "pGopSizeInSec"
+          },
+
+          "pGopPerSegment": {
+            "Ref": "pGopPerSegment"
+          },
+
+          "pSegmentPerPlaylist": {
+            "Ref": "pSegmentPerPlaylist"
+          },
+
+          "pStartChannel": {
+            "Ref": "pStartChannel"
+          },
+          
+          "pMediaStoreEndpoint": {
+            "Fn::If": [
+              "cEnableMediaStore",
+              { "Fn::GetAtt": [ "rMS", "Outputs.oContainerEndpoint" ] },
+              ""
+            ]
+          }
+        }
+      }
+    },
+
+    "rMS": {
+      "Condition": "cEnableMediaStore",
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Sub": "https://s3.amazonaws.com/${pS3}/${pSourceFolder}/mediastore.template"
+        },
+        "Parameters": {
+          "pS3": {
+            "Ref": "pS3"
+          },
+
+          "pSourceFolder": {
+            "Ref": "pSourceFolder"
+          },
+
+          "pPackageName": {
+            "Ref": "pPackageName"
+          },
+
+          "pProvisionLambdaHandler": "orchestration.MediaStoreContainer",
+
+          "pContainerName": {
+            "Fn::If": [
+              "HasEnvironmentParameter",
+              {
+                "Fn::Join": [
+                  "-",
+                  [
+                    {
+                      "Ref": "pProjectName"
+                    },
+                    {
+                      "Ref": "env"
+                    }
+                  ]
+                ]
+              },
+              {
+                "Ref": "pProjectName"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+
+  "Parameters": {
+    "env": {
+      "Type": "String",
+      "Description": "The environment name. e.g. Dev, Test, or Production",
+      "Default": "NONE"
+    },
+    "pProjectName": {
+      "Type": "String",
+      "Description": "store template and lambda package",
+      "Default": "mylivestream"
+    },
+    "pS3": {
+      "Type": "String",
+      "Description": "store template and lambda package",
+      "AllowedPattern" : "[a-zA-Z][a-zA-Z0-9-_]*",
+      "Default": "amplify-my-streaming-app-dev-152441-deployment"
+    },
+
+    "pSourceFolder": {
+      "Type": "String",
+      "Description": "store template and lambda package",
+      "Default": "livestream-helpers"
+    },
+
+    "pPackageName": {
+      "Type": "String",
+      "Description": "lambda package zip file",
+      "Default": "psdemo-js-live-workflow_v0.4.0.zip"
+    },
+
+    "pInputSecurityGroup": {
+      "Type": "CommaDelimitedList",
+      "Description": "comma delimited CIDR list. ie., 10.1.0.0/16,10.2.0.0/16",
+      "Default": "0.0.0.0/0"
+    },
+
+    "pIngestType": {
+      "Type": "String",
+      "Description": "medialive ingest type",
+      "AllowedValues": [ "RTP_PUSH", "UDP_PUSH", "RTMP_PUSH", "MP4_FILE" ],
+      "Default": "RTMP_PUSH"
+    },
+
+    "pMp4URL": {
+      "Type": "String",
+      "Description": "URL to MP4 File",
+      "Default": ""
+    },
+
+    "pEncodingProfile": {
+      "Type": "String",
+      "Description": "FULL (6 renditions), MOBILE (3 renditions), HD (single 1080p), SD (single 432p)",
+      "Default": "FULL",
+      "AllowedValues": [ "FULL", "MOBILE", "HD", "SD" ]
+    },
+
+    "pGopSizeInSec": {
+      "Type": "Number",
+      "Description": "specify GOP size in seconds. Use 1s to force IP-frame encode for low-latency.",
+      "Default": "1",
+      "MinValue": "1"
+    },
+
+    "pGopPerSegment": {
+      "Type": "Number",
+      "Description": "specify number of GOPs per segment. Use 1 for low-latency.",
+      "Default": "2",
+      "MinValue": "1"
+    },
+
+    "pStartChannel": {
+      "Type": "String",
+      "Description": "start the channel upon creation",
+      "Default": "YES",
+      "AllowedValues": [ "YES", "NO" ]
+    },
+    
+
+    "pSegmentPerPlaylist": {
+      "Type": "Number",
+      "Description": "specify number of segments per playlist/manifest, minimum 1 (recommended 3 and above)",
+      "Default": "3",
+      "MinValue": "1"
+    },
+
+    "pEnableMediaStore": {
+      "Type": "String",
+      "Description": "Caution: By enabling MediaStore, it clones the MediaLive output channels that will ingest to MediaStore origin.",
+      "Default": "YES",
+      "AllowedValues": [ "YES", "NO" ]
+    },
+
+    "pEnableDistribution": {
+      "Type": "String",
+      "Description": "",
+      "Default": "NO",
+      "AllowedValues": [ "YES", "NO" ]
+    },
+    
+
+    "pPriceClass": {
+      "Type": "String",
+      "Description": "see http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/PriceClass.html for details",
+      "AllowedValues": [ "PriceClass_100", "PriceClass_200", "PriceClass_All" ],
+      "Default": "PriceClass_100"
+    },
+
+    
+    "pS3CF": {
+      "Type": "String",
+      "Description": "specify where CloudFront will deliver access logs to. Leave it blank to use the same bucket of this workflow.",
+      "Default": ""
+    },
+
+    "pS3PrefixCF": {
+      "Type": "String",
+      "Description": "specify the prefix (folder) where CloudFront will deliver access logs to. Leave it as is.",
+      "Default": ""
+    }
+  },
+
+  "Conditions": {
+    "cS3CF": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [ { "Ref": "pS3CF" }, "" ]
+        }
+      ]
+    },
+    "cEnableMediaStore": {
+      "Fn::Equals": [ { "Ref": "pEnableMediaStore" }, "YES" ]
+    },
+
+    "cEnableDistribution": {
+      "Fn::Equals": [ { "Ref": "pEnableDistribution" }, "YES" ]
+    },
+    "HasEnvironmentParameter": {
+      "Fn::Not": [
+          {
+              "Fn::Equals": [
+                  {
+                      "Ref": "env"
+                  },
+                  "NONE"
+              ]
+          }
+      ]
+    }
+  },
+
+  "Outputs": {
+    "oMediaLiveChannelName": {
+      "Value": { "Fn::GetAtt": [ "rML", "Outputs.oChannelName" ] },
+      "Description": "MediaLive Channel Name"
+    },
+
+    "oMediaLiveChannelId": {
+      "Value": { "Fn::GetAtt": [ "rML", "Outputs.oChannelId" ] },
+      "Description": "MediaLive Channel Id"
+    },
+
+    "oMediaLivePrimaryIngestUrl": {
+      "Value": { "Fn::GetAtt": [ "rML", "Outputs.oPrimaryIngestUrl" ] },
+      "Description": "(P) MediaLive Ingest Url"
+    },
+
+    "oMediaLiveBackupIngestUrl": {
+      "Value": { "Fn::GetAtt": [ "rML", "Outputs.oBackupIngestUrl" ] },
+      "Description": "(B) MediaLive Ingest Url"
+    },
+    
+    "oMediaStoreContainerName": {
+      "Condition": "cEnableMediaStore",
+      "Value": { "Fn::GetAtt": [ "rMS", "Outputs.oContainerName" ] },
+      "Description": "MediaStore Container Name"
+    },
+
+    "oMediaStoreContainerArn": {
+      "Condition": "cEnableMediaStore",
+      "Value": { "Fn::GetAtt": [ "rMS", "Outputs.oContainerArn" ] },
+      "Description": "MediaStore Container Arn"
+    },
+
+    "oPrimaryMediaStoreEgressUrl": {
+      "Condition": "cEnableMediaStore",
+      "Value": { "Fn::GetAtt": [ "rML", "Outputs.oPrimaryMediaStoreEgressUrl" ] },
+      "Description": "(P) MediaStore Egress Url"
+    },
+
+    "oBackupMediaStoreEgressUrl": {
+      "Condition": "cEnableMediaStore",
+      "Value": { "Fn::GetAtt": [ "rML", "Outputs.oBackupMediaStoreEgressUrl" ] },
+      "Description": "(B) MediaStore Egress Url"
+    }
+  }
+}
