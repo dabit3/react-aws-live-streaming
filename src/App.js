@@ -1,18 +1,17 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
-import videojs from 'video.js';
-import 'video.js/dist/video-js.css';
-import awsvideoconfig from './aws-video-exports';
+import React from 'react'
+import videojs from 'video.js'
+import awsvideoconfig from './aws-video-exports'
+import './App.css'
+import 'video.js/dist/video-js.css'
 
 class VideoPlayer extends React.Component {
   componentDidMount() {
-    this.player = videojs(this.videoNode, this.props);
+    this.player = videojs(this.videoNode, this.props)
   }
 
   componentWillUnmount() {
     if (this.player) {
-      this.player.dispose();
+      this.player.dispose()
     }
   }
 
@@ -54,4 +53,4 @@ const nav = { padding: '0px 40px', height: 60, borderBottom: '1px solid #ddd', d
 const container = { paddingTop: 40, width: 960, margin: '0 auto' }
 const navHeading = { margin: 0, fontSize: 18 }
 
-export default App;
+export default App

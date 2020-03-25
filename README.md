@@ -8,34 +8,70 @@ This project is an example of how to deploy a live streaming back end using AWS 
 
 ### Amplify Video
 
-This project uses Amplify Video, a CLI plugin for the AWS Amplify CLI. To learn more about Amplify Video, check out the documentation.
+This project uses Amplify Video, a CLI plugin for the AWS Amplify CLI. To learn more about Amplify Video, check out [the documentation](https://github.com/awslabs/amplify-video).
 
 To learn how to build this project from scratch, check out the blog post [here]().
 
-### Deploying this app
+### App.js
 
-To deploy this app into your account, follow these steps.
+The main code for the client application is located in __src/App.js__
 
-1. Clone the repo, install the dependencies
+```js
+/* src/App.js */
+import React from 'react'
+import videojs from 'video.js'
+import awsvideoconfig from './aws-video-exports'
+import './App.css'
+import 'video.js/dist/video-js.css'
 
-```sh
-$ git clone git@github.com:dabit3/react-aws-live-streaming.git
-```
+class VideoPlayer extends React.Component {
+  componentDidMount() {
+    this.player = videojs(this.videoNode, this.props)
+  }
 
-2. Initialize the Amplify app
+  componentWillUnmount() {
+    if (this.player) {
+      this.player.dispose()
+    }
+  }
 
-```sh
-$ amplify init
-```
+  render() {
+    return (
+      <>
+        <div data-vjs-player style={{
+            width: 960, height: 540
+          }}>
+          <video  ref={(node) => { this.videoNode = node; }} className="video-js" />
+        </div>
+      </>
+    );
+  }
+}
 
-3. Deploy the back end services
+const videoJsOptions = {
+  autoplay: true,
+  controls: true,
+  sources: [{
+    src: awsvideoconfig.awsOutputLiveLL,
+  }]
+}
 
-```sh
-$ amplify push
-```
+function App() {
+  return (
+    <div>
+      <nav style={nav}>
+        <p style={navHeading}>Live Streaming with React & AWS</p>
+      </nav>
+      <div style={container}>
+        <VideoPlayer { ...videoJsOptions } />
+      </div>
+    </div>
+  );
+}
 
-4. Run the project
+const nav = { padding: '0px 40px', height: 60, borderBottom: '1px solid #ddd', display: 'flex', alignItems: 'center' }
+const container = { paddingTop: 40, width: 960, margin: '0 auto' }
+const navHeading = { margin: 0, fontSize: 18 }
 
-```sh
-$ npm start
+export default App
 ```
