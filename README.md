@@ -2,7 +2,7 @@
 
 Follow me on Twitter [@dabit3](https://twitter.com/dabit3)
 
-> This project goes along with my blog post on Dev.to - [Building a Custom Live-streaming Platform with React & AWS]()
+> This project goes along with my blog post on Dev.to - [Building a Custom Live-streaming Platform with React & AWS](https://dev.to/aws/building-a-serverless-live-streaming-platform-with-react-aws-1jmk)
 
 This project is an example of how to deploy a live streaming back end using AWS Amplify and [AWS Elemental MediaLive](https://aws.amazon.com/medialive/), and connect it to a front end project (in this case, React).
 
